@@ -7,6 +7,8 @@ import { CreateUserPermissionProps, UserPermission } from "../model/UserPermissi
 export interface UserRepository {
     /**
      * Creates a user with the specified properties
+     * - username/email/password must be non-blank, at most 255 in length
+     * - username must not be in use already
      * @param props the properties of the created user
      */
     createUser(props: CreateUserProps): Promise<User>;
@@ -30,19 +32,22 @@ export interface UserRepository {
 
     /**
      * Updates a user's profile with the given properties. Properties that are not set will not change
+     * - username/email/password must be non-blank, at most 255 in length
+     * - username must not be in use already
      * @param id the user to update
      * @param props the properties to update the user with
      */
     updateUser(id: number, props: UpdateUserProps): Promise<void>;
 
     /**
-     * Deletes a user by the specified Id
+     * Deletes a user by the specified Id. If a user is not found, no effect will occur
      * @param id the id of the user to delete
      */
     deleteUser(id: number): Promise<void>;
 
     /**
      * Creates a permission by the given name
+     * - name must be non-blank, unique, at most 255 in length
      * @param permission the permission name to create
      */
     createPermission(permission: CreateUserPermissionProps): Promise<UserPermission>;
@@ -53,7 +58,20 @@ export interface UserRepository {
     getPermissions(): Promise<UserPermission[]>;
 
     /**
+     * Gets a permission by its name
+     * @param name the name of the permission to get
+     */
+    getPermissionByName(name: string): Promise<UserPermission | null>
+
+    /**
+     * Gets a permission by its id
+     * @param id the id of the permission to get
+     */
+    getPermissionById(id: number): Promise<UserPermission | null>
+
+    /**
      * Returns a list of all permissions that apply to a specific user
+     * - The user id must exist
      * @param userId the id of the user to get permissions of
      */
     getPermissionsOnUser(userId: number): Promise<UserPermission[]>;

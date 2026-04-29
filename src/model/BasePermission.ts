@@ -4,5 +4,5 @@ export interface BasePermission {
 }
 
 export interface CreateBasePermissionProps {
-    name?: string
+    name: string
 }

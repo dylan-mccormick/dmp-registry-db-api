@@ -11,7 +11,7 @@ import { CreateUserPermissionProps, UserPermission } from "../model/UserPermissi
 /**
  * Implementation of the UserRepository.
  */
-export class UserRepositoryImpl {
+export class UserRepositoryImpl implements UserRepository {
 
     private pool: mysql.Pool;
 

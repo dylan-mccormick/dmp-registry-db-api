@@ -20,7 +20,8 @@ const rl = readline.createInterface({
 initDB().then(async pool => {
     console.log("connected to db pool");
 
-    const test = new UserRepositoryImpl(pool);
+    const userRepository = new UserRepositoryImpl(pool);
+
 
     function runRl() {
         rl.question("Enter a command: ", async (command) => {

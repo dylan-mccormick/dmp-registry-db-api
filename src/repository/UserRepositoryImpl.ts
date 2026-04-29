@@ -59,7 +59,7 @@ export class UserRepositoryImpl implements UserRepository {
 
     public updateUser = async (id: number, props: UpdateUserProps): Promise<void> => {
         const user = await this.getUserById(id);
-        if (user == null) throw new IllegalStateError("cannot update a user that does not exist");
+        if (user == null) throw new IllegalArgumentError("cannot update a user that does not exist");
 
         // verify preconditions
         if (props.username && !verifyValidString(props.username)) throw new IllegalArgumentError("username must be non-blank, lte length 255");

@@ -1,6 +1,12 @@
 import { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 
 const errorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
+    // ZodErrors: Bad Request
+    if (err instanceof ZodError) {
+        return res.status(400).json({ error: "Invalid request data", details: err.flatten() });
+    }
+
     // Log the error
     console.error("An error has occured in the API handler:", err);
 

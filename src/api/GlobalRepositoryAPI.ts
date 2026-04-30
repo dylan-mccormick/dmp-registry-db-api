@@ -1,19 +1,21 @@
-import { Application, Request, Response } from "express";
+import { Application, Request, Response, Router } from "express";
 import { GlobalRegistryRepository } from "../repository/GlobalRegistryRepository";
 
 
 export class GlobalRegistryRepositoryAPI {
-    private app: Application;
     private globalRegistryRepository: GlobalRegistryRepository;
 
-    constructor(app: Application, globalRegistryRepository: GlobalRegistryRepository) {
-        this.app = app;
+    constructor(globalRegistryRepository: GlobalRegistryRepository) {
         this.globalRegistryRepository = globalRegistryRepository;
     }
 
-    public registerRoutes() {
+    public registerRoutes(): Router {
+
+        const router = Router();
 
 
+
+        return router;
 
     }
 }

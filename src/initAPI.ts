@@ -6,6 +6,8 @@ import bodyParser from "body-parser";
 import rateLimit from "express-rate-limit";
 import { GlobalRegistryRepositoryAPI } from "./api/GlobalRepositoryAPI";
 import { UserRepositoryAPI } from "./api/UserRepositoryAPI";
+import apiKeyHandler from "./api/apiKeyHandler";
+import errorHandler from "./api/errorHandler";
 
 const initAPI = (userRepository: UserRepository, globalRegistryRepository: GlobalRegistryRepository): Promise<void> => {
     return new Promise((resolve, reject) => {
@@ -23,12 +25,30 @@ const initAPI = (userRepository: UserRepository, globalRegistryRepository: Globa
         app.use(bodyParser.json());
         app.use(limiter);
 
-        // register API routes
-        const userRepositoryAPI = new UserRepositoryAPI(app, userRepository);
-        userRepositoryAPI.registerRoutes();
+        // api key handler
+        app.use(apiKeyHandler);
 
-        const globalRegistryRepositoryAPI = new GlobalRegistryRepositoryAPI(app, globalRegistryRepository);
-        globalRegistryRepositoryAPI.registerRoutes();
+        // register API routes
+        const userRepositoryAPI = new UserRepositoryAPI(userRepository);
+        const userRouter = userRepositoryAPI.registerRoutes();
+
+        const globalRegistryRepositoryAPI = new GlobalRegistryRepositoryAPI(globalRegistryRepository);
+        const globalRouter = globalRegistryRepositoryAPI.registerRoutes();
+
+        app.use("/api/v1", userRouter);
+        app.use("/api/v1", globalRouter);
+
+        // custom modules
+        app.use(errorHandler);
+
+        // start server
+        const port = process.env.PORT || 3000;
+        app.listen(port, () => {
+            console.log(`Server is running on port ${port}`);
+            resolve();
+        }).on("error", (err) => {
+            reject(err);
+        });
     });
 }
 

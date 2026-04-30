@@ -1,8 +1,12 @@
 import { z } from "zod";
 
+export const UserIdQuerySchema = z.object({
+    id: z.coerce.number().int().positive()
+});
+
 export const UserQuerySchema = z.object({
     id: z.coerce.number().int().positive().optional(),
-    username: z.string().optional(),
+    username: z.string().optional()
 });
 
 export const UserCreateSchema = z.object({

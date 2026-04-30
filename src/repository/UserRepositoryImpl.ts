@@ -62,12 +62,12 @@ export class UserRepositoryImpl implements UserRepository {
         if (user == null) throw new IllegalArgumentError("cannot update a user that does not exist");
 
         // verify preconditions
-        if (props.username && !verifyValidString(props.username)) throw new IllegalArgumentError("username must be non-blank, lte length 255");
-        if (props.email && !verifyValidString(props.email)) throw new IllegalArgumentError("email must be non-blank, lte length 255");
-        if (props.password_hash && !verifyValidString(props.password_hash)) throw new IllegalArgumentError("password hash must be non-blank, lte length 255");
+        if (props.username !== undefined && !verifyValidString(props.username)) throw new IllegalArgumentError("username must be non-blank, lte length 255");
+        if (props.email !== undefined && !verifyValidString(props.email)) throw new IllegalArgumentError("email must be non-blank, lte length 255");
+        if (props.password_hash !== undefined && !verifyValidString(props.password_hash)) throw new IllegalArgumentError("password hash must be non-blank, lte length 255");
 
         // username must be unique
-        if (props.username && props.username != user.username && await this.getUserByUsername(props.username) != null) throw new IllegalStateError(`a user with username ${props.username} already exists`);
+        if (props.username !== undefined && props.username != user.username && await this.getUserByUsername(props.username) != null) throw new IllegalStateError(`a user with username ${props.username} already exists`);
 
         // now we may update the user
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
@@ -106,7 +106,6 @@ export class UserRepositoryImpl implements UserRepository {
 
     public createPermission = async ({ name }: CreateUserPermissionProps): Promise<UserPermission> => {
         // verify preconditions
-        console.log(name);
         if (!verifyValidString(name)) throw new IllegalArgumentError("name must be non-blank, lte length 255");
 
         // name must be unique

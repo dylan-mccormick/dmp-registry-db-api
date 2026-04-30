@@ -59,8 +59,8 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         if (registry == null) throw new IllegalArgumentError("cannot update a registry that does not exist")
 
         // verify preconditions
-        if (name && !verifyValidString(name)) throw new IllegalArgumentError(`registry name must be non-blank, lte length 255`);
-        if (name && name != registry.name && await this.getRegistryByName(name) != null) throw new IllegalStateError(`registry with the given name ${name} already exists`);
+        if (name !== undefined && !verifyValidString(name)) throw new IllegalArgumentError(`registry name must be non-blank, lte length 255`);
+        if (name !== undefined && name != registry.name && await this.getRegistryByName(name) != null) throw new IllegalStateError(`registry with the given name ${name} already exists`);
 
         // update the registry
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
@@ -100,7 +100,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         // verify preconditions
         if (!verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
         if (!verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
-        if (this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
+        if (await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
 
         // create the registry agent
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
@@ -116,9 +116,9 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         const agent = await this.getRegistryAgentById(id);
         if (agent == null) throw new IllegalArgumentError(`cannot update a registry agent that does not exist`);
         // verify preconditions
-        if (name && !verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
-        if (key_hash && !verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
-        if (name && name != agent.name && await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
+        if (name !== undefined && !verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
+        if (key_hash !== undefined && !verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
+        if (name !== undefined && name != agent.name && await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
 
         // update the registry agent
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
@@ -177,12 +177,20 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     /* REGISTRY PERMISSIONS FOR USERS */
     public async getRegistryPermissionsOnUser(userId: number): Promise<RegistryActorPermission[]> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_user_permissions WHERE user_id = ?`, [ userId ]);
-        return rows as RegistryActorPermission[];
+        return rows.map(row => ({
+            actor_id: row.user_id as number,
+            registry_id: row.registry_id as number,
+            permission_id: row.permission_id as number
+        }));
     }
 
     public async getRegistryPermissionsOnUserRegistry(userId: number, registryId: number): Promise<RegistryActorPermission[]> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_user_permissions WHERE user_id = ? AND registry_id = ?`, [ userId, registryId ]);
-        return rows as RegistryActorPermission[];
+        return rows.map(row => ({
+            actor_id: row.user_id as number,
+            registry_id: row.registry_id as number,
+            permission_id: row.permission_id as number
+        }));
     }
 
     public async assignRegistryPermissionToUser(userId: number, registryId: number, permission: RegistryPermission): Promise<void> {
@@ -208,12 +216,20 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     /* REGISTRY PERMISSIONS FOR AGENTS */
     public async getRegistryPermissionsOnAgent(agentId: number): Promise<RegistryActorPermission[]> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agent_permissions WHERE agent_id = ?`, [ agentId ]);
-        return rows as RegistryActorPermission[];
+        return rows.map(row => ({
+            actor_id: row.agent_id as number,
+            registry_id: row.registry_id as number,
+            permission_id: row.permission_id as number
+        }));
     }
 
     public async getRegistryPermissionsOnAgentRegistry(agentId: number, registryId: number): Promise<RegistryActorPermission[]> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agent_permissions WHERE agent_id = ? AND registry_id = ?`, [ agentId, registryId ]);
-        return rows as RegistryActorPermission[];
+        return rows.map(row => ({
+            actor_id: row.agent_id as number,
+            registry_id: row.registry_id as number,
+            permission_id: row.permission_id as number
+        }));
     }
 
     public async assignRegistryPermissionToAgent(agentId: number, registryId: number, permission: RegistryPermission): Promise<void> {

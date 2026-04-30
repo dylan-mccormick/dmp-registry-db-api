@@ -3,6 +3,7 @@ import initDB from './db/initDB';
 import readline from "readline";
 import { UserRepository } from './repository/UserRepository';
 import { UserRepositoryImpl } from './repository/UserRepositoryImpl';
+import { GlobalRegistryRepositoryImpl } from './repository/GlobalRegistryRepositoryImpl';
 
 const DEV_ENV = true;
 
@@ -21,7 +22,7 @@ initDB().then(async pool => {
     console.log("connected to db pool");
 
     const userRepository = new UserRepositoryImpl(pool);
-
+    const repo = new GlobalRegistryRepositoryImpl(pool);
 
     function runRl() {
         rl.question("Enter a command: ", async (command) => {

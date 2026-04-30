@@ -55,21 +55,22 @@ export interface GlobalRegistryRepository {
     createRegistryAgent(agent: CreateRegistryAgentProps): Promise<RegistryAgent>;
 
     /**
-     * Gets a list of all registry agents in the DMP Registry
+     * Gets a registry agent given the specified registry agent id
+     * @param id the id of the registry agent to get
      */
-    getAllRegistryAgents(): Promise<RegistryAgent[]>;
+    getRegistryAgentById(d: number): Promise<RegistryAgent | null>;
 
     /**
      * Gets a registry agent given the specified registry agent id
      * @param id the id of the registry agent to get
      */
-    getRegistryAgentById(id: number): Promise<RegistryAgent | null>;
+    getRegistryAgentByName(name: string): Promise<RegistryAgent | null>;
 
     /**
      * Gets a list of all registry agents that belong to a specific registry
      * @param registryId the id of the registry to get all agents of
      */
-    getRegistryAgentsByRegistryId(registryId: number): Promise<RegistryAgent[]>;
+    getRegistryAgents(registryId: number): Promise<RegistryAgent[]>;
 
     /**
      * Updates a registry agent with the given properties
@@ -87,6 +88,7 @@ export interface GlobalRegistryRepository {
 
     /**
      * Creates a new registry permission with the given properties, and returns a promise of it
+     * - the name must be non-blank, unique, lte length 255
      * @param permission the permission to create
      */
     createRegistryPermission(permission: CreateRegistryPermissionProps): Promise<RegistryPermission>;
@@ -95,6 +97,18 @@ export interface GlobalRegistryRepository {
      * Gets a list of all registry permissions in the DMP Registry
      */
     getRegistryPermissions(): Promise<RegistryPermission[]>;
+
+    /**
+     * Returns a registry permission matching the specified name, or null if one does not exist
+     * @param name the name of the registry permission
+     */
+    getRegistryPermissionByName(name: string): Promise<RegistryPermission | null>
+
+    /**
+     * Returns a registry permission matching the specified id, or null if one does not exist
+     * @param id the id of the registry permission
+     */
+    getRegistryPermissionById(id: number): Promise<RegistryPermission | null>
 
     /**
      * Gets a list of all registry permissions that apply to a specific user for all registries
@@ -107,7 +121,7 @@ export interface GlobalRegistryRepository {
      * @param userId the id of the user to get registry permissions of
      * @param registryId the id of the registry to check
      */
-    getRegistryPermissionsOnUser(userId: number, registryId: number): Promise<RegistryActorPermission[]>;
+    getRegistryPermissionsOnUserRegistry(userId: number, registryId: number): Promise<RegistryActorPermission[]>;
 
     /**
      * Assigns a registry permission to a user. If the user already has this permission, no effect will occur
@@ -136,7 +150,7 @@ export interface GlobalRegistryRepository {
      * @param agentId the id of the agent to get registry permissions of
      * @param registryId the id of the registry to check
      */
-    getRegistryPermissionsOnAgent(agentId: number, registryId: number): Promise<RegistryActorPermission[]>;
+    getRegistryPermissionsOnAgentRegistry(agentId: number, registryId: number): Promise<RegistryActorPermission[]>;
 
     /**
      * Assigns a registry permission to an agent. If the agent already has this permission, no effect will occur

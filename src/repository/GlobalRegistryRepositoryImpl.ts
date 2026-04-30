@@ -5,6 +5,11 @@ import { verifyValidString } from "../Utils";
 import { IllegalArgumentError } from "../error/IllegalArgumentError";
 import { IllegalStateError } from "../error/IllegalStateError";
 import { RepositoryFailureError } from "../error/RepositoryFailureError";
+import { CreateRegistryAgentProps, UpdateRegistryAgentProps } from "../model/RegistryAgent";
+import { RegistryAgent } from "../model/RegistryAgent";
+import { CreateRegistryPermissionProps } from "../model/RegistryPermission";
+import { RegistryPermission } from "../model/RegistryPermission";
+import { RegistryActorPermission } from "../model/RegistryActorPermission";
 
 /**
  * Implementation of the GlobalRegistryRepository.
@@ -71,6 +76,163 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     public async deleteRegistry(id: number): Promise<void> {
         // just delete the registry, no effect if the registry does not exist
         await this.pool.execute(`DELETE FROM registries WHERE id = ?`, [ id ]);
+        return;
+    }
+
+    /* REGISTRY AGENT CRUD */
+
+    public async getRegistryAgents(registryId: number): Promise<RegistryAgent[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE registry_id = ?`, [ registryId ]);
+        return rows as RegistryAgent[];
+    }
+
+    public async getRegistryAgentById(id: number): Promise<RegistryAgent | null> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE id = ?`, [ id ]);
+        return (rows[0] ?? null) as RegistryAgent;
+    }
+
+    public async getRegistryAgentByName(name: string): Promise<RegistryAgent | null> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE name = ?`, [ name ]);
+        return (rows[0] ?? null) as RegistryAgent;
+    }
+
+    public async createRegistryAgent({ registry_id, name, key_hash, created_by_user_id }: CreateRegistryAgentProps): Promise<RegistryAgent> {
+        // verify preconditions
+        if (!verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
+        if (!verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
+        if (this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
+
+        // create the registry agent
+        const [ rows ] = await this.pool.execute<ResultSetHeader>(
+            `INSERT INTO registry_agents(registry_id, name, key_hash, created_by_user_id)
+            VALUES (?, ?, ?, ?)`, [ registry_id, name, key_hash, created_by_user_id ?? null ]);
+        const registryAgent = await this.getRegistryAgentById(rows.insertId);
+
+        if (registryAgent == null) throw new RepositoryFailureError(`registry agent was created without error but was not found`);
+        return registryAgent;
+    }
+
+    public async updateRegistryAgent(id: number, { name, key_hash }: UpdateRegistryAgentProps): Promise<void> {
+        const agent = await this.getRegistryAgentById(id);
+        if (agent == null) throw new IllegalArgumentError(`cannot update a registry agent that does not exist`);
+        // verify preconditions
+        if (name && !verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
+        if (key_hash && !verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
+        if (name && name != agent.name && await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
+
+        // update the registry agent
+        const [ rows ] = await this.pool.execute<ResultSetHeader>(
+            `UPDATE registry_agents
+            SET name = ?, key_hash = ?
+            WHERE id = ?`,
+        [ name ?? agent.name, key_hash ?? agent.key_hash, id ]);
+
+        if (rows.affectedRows != 1) throw new RepositoryFailureError(`the update-query registry agent was not updated`);
+        return;
+    }
+
+    public async deleteRegistryAgent(id: number) {
+        // idempotent delete
+        await this.pool.execute(`DELETE FROM registry_agents WHERE id = ?`, [ id ]);
+        return;
+    }
+
+    /* REGISTRY PERMISSIONS CRUD */
+    public async getRegistryPermissions(): Promise<RegistryPermission[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available`);
+        return rows as RegistryPermission[];
+    }
+
+    public async getRegistryPermissionById(id: number): Promise<RegistryPermission | null> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE id = ?`, [ id ]);
+        return (rows[0] ?? null) as RegistryPermission;
+    }
+
+    public async getRegistryPermissionByName(name: string): Promise<RegistryPermission | null> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE name = ?`, [ name ]);
+        return (rows[0] ?? null) as RegistryPermission;
+    }
+
+    public async createRegistryPermission({ name }: CreateRegistryPermissionProps) {
+        // verify preconditions
+        if (!verifyValidString(name)) throw new IllegalArgumentError(`registry permission name must be non-blank, lte length 255`);
+        if (await this.getRegistryPermissionByName(name) != null) throw new IllegalStateError(`registry permission with the name ${name} already exists`);
+
+        // create the registry permission
+        const [ rows ] = await this.pool.execute<ResultSetHeader>(
+            `INSERT INTO registry_permissions_available(name)
+            VALUES (?)`, [ name ]);
+        const registryPermission = await this.getRegistryPermissionById(rows.insertId);
+
+        if (registryPermission == null) throw new RepositoryFailureError(`registry permission was created without error but was not found`);
+        return registryPermission;
+    }
+
+    public async deleteRegistryPermission(id: number): Promise<void> {
+        // idempotent delete
+        await this.pool.execute(`DELETE FROM registry_permissions_available WHERE id = ?`, [ id ]);
+        return;
+    }
+
+    /* REGISTRY PERMISSIONS FOR USERS */
+    public async getRegistryPermissionsOnUser(userId: number): Promise<RegistryActorPermission[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_user_permissions WHERE user_id = ?`, [ userId ]);
+        return rows as RegistryActorPermission[];
+    }
+
+    public async getRegistryPermissionsOnUserRegistry(userId: number, registryId: number): Promise<RegistryActorPermission[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_user_permissions WHERE user_id = ? AND registry_id = ?`, [ userId, registryId ]);
+        return rows as RegistryActorPermission[];
+    }
+
+    public async assignRegistryPermissionToUser(userId: number, registryId: number, permission: RegistryPermission): Promise<void> {
+        // verify the permission exists
+        const permissionRecord = await this.getRegistryPermissionById(permission.id);
+        if (permissionRecord == null) throw new IllegalArgumentError(`cannot assign a registry permission that does not exist`);
+
+        // idempotent assignment
+        await this.pool.execute(
+            `INSERT IGNORE INTO registry_user_permissions(user_id, registry_id, permission_id)
+            VALUES (?, ?, ?)`, [ userId, registryId, permission.id ]);
+        return;
+    }
+
+    public async revokeRegistryPermissionFromUser(userId: number, registryId: number, permission: RegistryPermission): Promise<void> {
+        // idempotent revoke
+        await this.pool.execute(
+            `DELETE FROM registry_user_permissions
+            WHERE user_id = ? AND registry_id = ? AND permission_id = ?`, [ userId, registryId, permission.id ]);
+        return;
+    }
+
+    /* REGISTRY PERMISSIONS FOR AGENTS */
+    public async getRegistryPermissionsOnAgent(agentId: number): Promise<RegistryActorPermission[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agent_permissions WHERE agent_id = ?`, [ agentId ]);
+        return rows as RegistryActorPermission[];
+    }
+
+    public async getRegistryPermissionsOnAgentRegistry(agentId: number, registryId: number): Promise<RegistryActorPermission[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agent_permissions WHERE agent_id = ? AND registry_id = ?`, [ agentId, registryId ]);
+        return rows as RegistryActorPermission[];
+    }
+
+    public async assignRegistryPermissionToAgent(agentId: number, registryId: number, permission: RegistryPermission): Promise<void> {
+        // verify the permission exists
+        const permissionRecord = await this.getRegistryPermissionById(permission.id);
+        if (permissionRecord == null) throw new IllegalArgumentError(`cannot assign a registry permission that does not exist`);
+
+        // idempotent assignment
+        await this.pool.execute(
+            `INSERT IGNORE INTO registry_agent_permissions(agent_id, registry_id, permission_id)
+            VALUES (?, ?, ?)`, [ agentId, registryId, permission.id ]);
+        return;
+    }
+
+    public async revokeRegistryPermissionFromAgent(agentId: number, registryId: number, permission: RegistryPermission): Promise<void> {
+        // idempotent revoke
+        await this.pool.execute(
+            `DELETE FROM registry_agent_permissions
+            WHERE agent_id = ? AND registry_id = ? AND permission_id = ?`, [ agentId, registryId, permission.id ]);
         return;
     }
 

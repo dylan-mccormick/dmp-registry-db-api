@@ -22,7 +22,7 @@ export class GlobalRegistryRepositoryAPI {
             const { name } = RegistryRepositoryQuerySchema.parse(req.query);
             if (name) {
                 const permission = await this.globalRegistryRepository.getRegistryPermissionByName(name);
-                if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+                if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
                 return res.status(200).json(permission);
             }
             const permissions = await this.globalRegistryRepository.getRegistryPermissions();
@@ -32,7 +32,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/registry/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { permissionId } = RegistryPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             res.status(200).json(permission);
         }));
 
@@ -40,7 +40,7 @@ export class GlobalRegistryRepositoryAPI {
             const { name } = RegistryPermissionCreateSchema.parse(req.body);
             // verify that the registry permission name is not already in use
             if (await this.globalRegistryRepository.getRegistryPermissionByName(name)) {
-                 return res.status(400).json({ error: "Registry permission with this name already exists" });
+                 return res.status(400).json({ error: "Registry permission with this name already exists", code: "REGISTRY_PERMISSION_ALREADY_EXISTS" });
             }
             const permission = await this.globalRegistryRepository.createRegistryPermission({ name });
             res.status(201).json(permission);
@@ -57,7 +57,7 @@ export class GlobalRegistryRepositoryAPI {
             if (name) {
                 const registry = await this.globalRegistryRepository.getRegistryByName(name);
                 if (!registry) {
-                    return res.status(404).json({ error: "Registry not found" });
+                    return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
                 }
                 return res.status(200).json(registry);
             }
@@ -68,7 +68,7 @@ export class GlobalRegistryRepositoryAPI {
         router.post("/registry", asyncHandler(async (req: Request, res: Response) => {
             const { name, type, storage_location } = RegistryRepositoryCreateSchema.parse(req.body);
             // verify that the registry name is not already in use
-            if (await this.globalRegistryRepository.getRegistryByName(name)) return res.status(400).json({ error: "Registry with this name already exists" });
+            if (await this.globalRegistryRepository.getRegistryByName(name)) return res.status(400).json({ error: "Registry with this name already exists", code: "REGISTRY_ALREADY_EXISTS" });
             const registry = await this.globalRegistryRepository.createRegistry({ name, type, storage_location });
             res.status(201).json(registry);
         }));
@@ -76,7 +76,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/registry/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = RegistryRepositoryIdQuerySchema.parse(req.params);
             const registry = await this.globalRegistryRepository.getRegistryById(id);
-            if (!registry) return res.status(404).json({ error: "Registry not found" });
+            if (!registry) return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
             res.status(200).json(registry);
         }));
 
@@ -85,10 +85,10 @@ export class GlobalRegistryRepositoryAPI {
             const { id } = RegistryRepositoryIdQuerySchema.parse(req.params);
             // verify that the registry exists
             const registry = await this.globalRegistryRepository.getRegistryById(id);
-            if (!registry) return res.status(404).json({ error: "Registry not found" });
+            if (!registry) return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
             // verify that the new name is not already in use by another registry
             if (name && await this.globalRegistryRepository.getRegistryByName(name) && (await this.globalRegistryRepository.getRegistryByName(name))!.id !== id) {
-                return res.status(400).json({ error: "Registry with this name already exists" });
+                return res.status(400).json({ error: "Registry with this name already exists", code: "REGISTRY_ALREADY_EXISTS" });
             }
             await this.globalRegistryRepository.updateRegistry(id, { name });
             res.status(200).json({ message: "Registry updated successfully" });
@@ -105,7 +105,7 @@ export class GlobalRegistryRepositoryAPI {
             const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
             if (name) {
                 const agent = await this.globalRegistryRepository.getRegistryAgentByName(name);
-                if (!agent) return res.status(404).json({ error: "Registry agent not found" });
+                if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
                 return res.status(200).json(agent);
             }
             const agents = await this.globalRegistryRepository.getRegistryAgents(registryId);
@@ -115,7 +115,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/registry/:registryId/agents/:agentId", asyncHandler(async (req: Request, res: Response) => {
             const { agentId } = RegistryAgentIdQuerySchema.parse(req.params);
             const agent = await this.globalRegistryRepository.getRegistryAgentById(agentId);
-            if (!agent) return res.status(404).json({ error: "Registry agent not found" });
+            if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
             res.status(200).json(agent);
         }));
 
@@ -123,11 +123,11 @@ export class GlobalRegistryRepositoryAPI {
             const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
             const { name, key_hash, created_by_user_id } = RegistryAgentCreateSchema.parse(req.body);
             // verify that the registry exists
-            if (!(await this.globalRegistryRepository.getRegistryById(registryId))) return res.status(404).json({ error: "Registry not found" });
+            if (!(await this.globalRegistryRepository.getRegistryById(registryId))) return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
             // verify that the registry agent name is not already in use
-            if (await this.globalRegistryRepository.getRegistryAgentByName(name)) return res.status(400).json({ error: "Registry agent with this name already exists" });
+            if (await this.globalRegistryRepository.getRegistryAgentByName(name)) return res.status(400).json({ error: "Registry agent with this name already exists", code: "REGISTRY_AGENT_ALREADY_EXISTS" });
             // verify that the user creating the registry agent exists
-            if (!(await this.globalRegistryRepository.getRegistryPermissionsOnUser(created_by_user_id))) return res.status(404).json({ error: "Creating user not found" });
+            if (!(await this.globalRegistryRepository.getRegistryPermissionsOnUser(created_by_user_id))) return res.status(404).json({ error: "Creating user not found", code: "CREATING_USER_NOT_FOUND" });
             const agent = await this.globalRegistryRepository.createRegistryAgent({ registry_id: registryId, name, key_hash, created_by_user_id });
             res.status(201).json(agent);
         }));
@@ -136,10 +136,10 @@ export class GlobalRegistryRepositoryAPI {
             const { agentId } = RegistryAgentIdQuerySchema.parse(req.params);
             const { name, key_hash } = RegistryAgentUpdateSchema.parse(req.body);
             const agent = await this.globalRegistryRepository.getRegistryAgentById(agentId);
-            if (!agent) return res.status(404).json({ error: "Registry agent not found" });
+            if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
             // verify that the new name is not already in use by another registry agent
             if (name && await this.globalRegistryRepository.getRegistryAgentByName(name) && (await this.globalRegistryRepository.getRegistryAgentByName(name))!.id !== agentId) {
-                return res.status(400).json({ error: "Registry agent with this name already exists" });
+                return res.status(400).json({ error: "Registry agent with this name already exists", code: "REGISTRY_AGENT_ALREADY_EXISTS" });
             }
             await this.globalRegistryRepository.updateRegistryAgent(agentId, { name, key_hash });
             res.status(200).json({ message: "Registry agent updated successfully" });
@@ -166,7 +166,7 @@ export class GlobalRegistryRepositoryAPI {
         router.post("/users/:userId/registry/:registryId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { userId, registryId, permissionId } = UserIdRegistryPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             await this.globalRegistryRepository.assignRegistryPermissionToUser(userId, registryId, permission);
             res.status(200).json({ message: "Registry permission assigned to user successfully" });
         }));
@@ -174,7 +174,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/users/:userId/registry/:registryId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { userId, registryId, permissionId } = UserIdRegistryPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             const permissionsOnUser = await this.globalRegistryRepository.getRegistryPermissionsOnUserRegistry(userId, registryId);
             const hasPermission = permissionsOnUser.some(p => p.permission_id === permissionId);
             res.status(200).json({ hasPermission });
@@ -183,7 +183,7 @@ export class GlobalRegistryRepositoryAPI {
         router.delete("/users/:userId/registry/:registryId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { userId, registryId, permissionId } = UserIdRegistryPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             await this.globalRegistryRepository.revokeRegistryPermissionFromUser(userId, registryId, permission);
             res.status(200).json({ message: "Registry permission revoked from user successfully" });
         }));
@@ -197,7 +197,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/registry/:registryId/agents/:agentId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { registryId, agentId, permissionId } = RegistryAgentPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             const permissionsOnAgent = await this.globalRegistryRepository.getRegistryPermissionsOnAgentRegistry(agentId, registryId);
             const hasPermission = permissionsOnAgent.some(p => p.permission_id === permissionId);
             res.status(200).json({ hasPermission });
@@ -206,7 +206,7 @@ export class GlobalRegistryRepositoryAPI {
         router.post("/registry/:registryId/agents/:agentId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { registryId, agentId, permissionId } = RegistryAgentPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             await this.globalRegistryRepository.assignRegistryPermissionToAgent(agentId, registryId, permission);
             res.status(200).json({ message: "Registry permission assigned to agent successfully" });
         }));
@@ -214,7 +214,7 @@ export class GlobalRegistryRepositoryAPI {
         router.delete("/registry/:registryId/agents/:agentId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { registryId, agentId, permissionId } = RegistryAgentPermissionIdQuerySchema.parse(req.params);
             const permission = await this.globalRegistryRepository.getRegistryPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Registry permission not found" });
+            if (!permission) return res.status(404).json({ error: "Registry permission not found", code: "REGISTRY_PERMISSION_NOT_FOUND" });
             await this.globalRegistryRepository.revokeRegistryPermissionFromAgent(agentId, registryId, permission);
             res.status(200).json({ message: "Registry permission revoked from agent successfully" });
         }));

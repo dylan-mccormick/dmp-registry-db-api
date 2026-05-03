@@ -22,7 +22,7 @@ export class UserRepositoryAPI {
                 const user = await this.userRepository.getUserByUsername(username);
 
                 if (!user) {
-                    return res.status(404).json({ error: "User not found" });
+                    return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
                 }
 
                 return res.status(200).json(user);
@@ -36,7 +36,7 @@ export class UserRepositoryAPI {
             const { username, email, password_hash } = UserCreateSchema.parse(req.body);
             // verify that the username is not already in use
             if (await this.userRepository.getUserByUsername(username)) {
-                return res.status(400).json({ error: "Username is already in use" });
+                return res.status(400).json({ error: "Username is already in use", code: "USERNAME_ALREADY_IN_USE" });
             }
             const newUser = await this.userRepository.createUser({ username, email, password_hash });
             res.status(201).json(newUser);
@@ -47,7 +47,7 @@ export class UserRepositoryAPI {
             const { name } = UserPermissionQuerySchema.parse(req.query);
             if (name) {
                 const permission = await this.userRepository.getPermissionByName(name);
-                if (!permission) return res.status(404).json({ error: "Permission not found" });
+                if (!permission) return res.status(404).json({ error: "Permission not found", code: "PERMISSION_NOT_FOUND" });
                 return res.status(200).json(permission);
             }
 
@@ -59,7 +59,7 @@ export class UserRepositoryAPI {
             const { name } = UserPermissionCreateSchema.parse(req.body);
             // verify that the permission doesn't already exist
             if (await this.userRepository.getPermissionByName(name)) {
-                return res.status(400).json({ error: "Permission with this name already exists" });
+                return res.status(400).json({ error: "Permission with this name already exists", code: "PERMISSION_ALREADY_EXISTS" });
             }
             const newPermission = await this.userRepository.createPermission({ name });
             res.status(201).json(newPermission);
@@ -68,19 +68,19 @@ export class UserRepositoryAPI {
         router.get("/users/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserIdQuerySchema.parse(req.params);
             const user = await this.userRepository.getUserById(id);
-            if (!user) return res.status(404).json({ error: "User not found" });
+            if (!user) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
             return res.status(200).json(user);
         }));
 
         router.put("/users/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserIdQuerySchema.parse(req.params);
             const { username, email, password_hash, email_verified, token_version } = UserUpdateSchema.parse(req.body);
-            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found" });
+            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
             // verify that the new username (if being updated) is not already in use by another user
             if (username) {
                 const existingUser = await this.userRepository.getUserByUsername(username);
                 if (existingUser && existingUser.id !== id) {
-                    return res.status(400).json({ error: "Username is already in use" });
+                    return res.status(400).json({ error: "Username is already in use", code: "USERNAME_ALREADY_IN_USE" });
                 }
             }
             const updatedUser = await this.userRepository.updateUser(id, { username, email, password_hash, email_verified, token_version });
@@ -90,26 +90,26 @@ export class UserRepositoryAPI {
         router.delete("/users/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserIdQuerySchema.parse(req.params);
             await this.userRepository.deleteUser(id);
-            res.status(200).json({ message: "User deleted successfully" });
+            res.status(200).json({ message: "User deleted successfully", code: "USER_DELETED_SUCCESSFULLY" });
         }));
 
         router.get("/users/permissions/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserPermissionIdQuerySchema.parse(req.params);
             const permission = await this.userRepository.getPermissionById(id);
-            if (!permission) return res.status(404).json({ error: "Permission not found" });
+            if (!permission) return res.status(404).json({ error: "Permission not found", code: "PERMISSION_NOT_FOUND" });
             return res.status(200).json(permission);
         }));
 
         router.delete("/users/permissions/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserPermissionIdQuerySchema.parse(req.params);
             await this.userRepository.deletePermission(id);
-            res.status(200).json({ message: "Permission deleted successfully" });
+            res.status(200).json({ message: "Permission deleted successfully", code: "PERMISSION_DELETED_SUCCESSFULLY" });
         }));
 
         router.get("/users/:id/permissions", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserIdQuerySchema.parse(req.params);
             // verify that the user exists
-            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found" });
+            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
 
             const permissions = await this.userRepository.getPermissionsOnUser(id);
             res.status(200).json(permissions);
@@ -119,10 +119,10 @@ export class UserRepositoryAPI {
             const { id } = UserIdQuerySchema.parse(req.params);
             const { id: permissionId } = UserPermissionIdQuerySchema.parse(req.params);
             // verify that the user exists
-            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found" });
+            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
             // verify that the permission exists
             const permission = await this.userRepository.getPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Permission not found" });
+            if (!permission) return res.status(404).json({ error: "Permission not found", code: "PERMISSION_NOT_FOUND" });
 
             await this.userRepository.assignPermission(id, permission);
             res.status(200).json({ message: "Permission assigned to user successfully" });
@@ -132,10 +132,10 @@ export class UserRepositoryAPI {
             const { id } = UserIdQuerySchema.parse(req.params);
             const { id: permissionId } = UserPermissionIdQuerySchema.parse(req.params);
             // verify that the user exists
-            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found" });
+            if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
             // verify that the permission exists
             const permission = await this.userRepository.getPermissionById(permissionId);
-            if (!permission) return res.status(404).json({ error: "Permission not found" });
+            if (!permission) return res.status(404).json({ error: "Permission not found", code: "PERMISSION_NOT_FOUND" });
 
             await this.userRepository.revokePermission(id, permission);
             res.status(200).json({ message: "Permission revoked from user successfully" });

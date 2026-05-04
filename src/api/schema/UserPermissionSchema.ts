@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const UserPermissionIdQuerySchema = z.object({
-    id: z.coerce.number().int().positive()
+    permissionId: z.coerce.number().int().positive()
 });
 
 export const UserPermissionQuerySchema = z.object({

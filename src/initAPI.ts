@@ -1,4 +1,5 @@
 import express from "express";
+import morgan from "morgan";
 import { GlobalRegistryRepository } from "./repository/GlobalRegistryRepository";
 import { UserRepository } from "./repository/UserRepository";
 import helmet from "helmet";
@@ -18,6 +19,7 @@ const initAPI = (userRepository: UserRepository, globalRegistryRepository: Globa
         });
 
         const app = express();
+        app.use(morgan("combined"));
 
         // use modules
         app.use(helmet());

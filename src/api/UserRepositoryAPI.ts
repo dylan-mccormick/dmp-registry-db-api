@@ -94,14 +94,14 @@ export class UserRepositoryAPI {
         }));
 
         router.get("/users/permissions/:id", asyncHandler(async (req: Request, res: Response) => {
-            const { id } = UserPermissionIdQuerySchema.parse(req.params);
+            const { permissionId: id } = UserPermissionIdQuerySchema.parse(req.params);
             const permission = await this.userRepository.getPermissionById(id);
             if (!permission) return res.status(404).json({ error: "Permission not found", code: "PERMISSION_NOT_FOUND" });
             return res.status(200).json(permission);
         }));
 
         router.delete("/users/permissions/:id", asyncHandler(async (req: Request, res: Response) => {
-            const { id } = UserPermissionIdQuerySchema.parse(req.params);
+            const { permissionId: id } = UserPermissionIdQuerySchema.parse(req.params);
             await this.userRepository.deletePermission(id);
             res.status(200).json({ message: "Permission deleted successfully", code: "PERMISSION_DELETED_SUCCESSFULLY" });
         }));
@@ -117,7 +117,7 @@ export class UserRepositoryAPI {
 
         router.post("/users/:id/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserIdQuerySchema.parse(req.params);
-            const { id: permissionId } = UserPermissionIdQuerySchema.parse(req.params);
+            const { permissionId } = UserPermissionIdQuerySchema.parse(req.params);
             // verify that the user exists
             if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
             // verify that the permission exists
@@ -130,7 +130,7 @@ export class UserRepositoryAPI {
 
         router.delete("/users/:id/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {
             const { id } = UserIdQuerySchema.parse(req.params);
-            const { id: permissionId } = UserPermissionIdQuerySchema.parse(req.params);
+            const { permissionId } = UserPermissionIdQuerySchema.parse(req.params);
             // verify that the user exists
             if (!(await this.userRepository.getUserById(id))) return res.status(404).json({ error: "User not found", code: "USER_NOT_FOUND" });
             // verify that the permission exists

@@ -14,7 +14,7 @@ const initAPI = (userRepository: UserRepository, globalRegistryRepository: Globa
         // rate limiting
         const limiter = rateLimit({
             windowMs: 1 * 60 * 1000, // 1 minute
-            max: 100, // limit each IP to 100 requests per windowMs
+            max: 60, // limit each IP to 60 requests per windowMs
         });
 
         const app = express();

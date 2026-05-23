@@ -31,7 +31,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     }
 
     public async getRegistryById(id: number): Promise<Registry | null> {
-        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registries WHERE id = ?`, [ id ]);
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registries WHERE rid = ?`, [ id ]);
         return (rows[0] ?? null) as Registry;
     }
 
@@ -67,7 +67,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
             `UPDATE registries
             SET name = ?
-            WHERE id = ?`, [name ?? registry.name, id]
+            WHERE rid = ?`, [name ?? registry.name, id]
         );
 
         if (rows.affectedRows != 1) throw new RepositoryFailureError("the update-query registry was not updated");
@@ -76,7 +76,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
 
     public async deleteRegistry(id: number): Promise<void> {
         // just delete the registry, no effect if the registry does not exist
-        await this.pool.execute(`DELETE FROM registries WHERE id = ?`, [ id ]);
+        await this.pool.execute(`DELETE FROM registries WHERE rid = ?`, [ id ]);
         return;
     }
 
@@ -88,7 +88,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     }
 
     public async getRegistryAgentById(id: number): Promise<RegistryAgent | null> {
-        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE id = ?`, [ id ]);
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE raid = ?`, [ id ]);
         return (rows[0] ?? null) as RegistryAgent;
     }
 
@@ -125,7 +125,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
             `UPDATE registry_agents
             SET name = ?, key_hash = ?
-            WHERE id = ?`,
+            WHERE raid = ?`,
         [ name ?? agent.name, key_hash ?? agent.key_hash, id ]);
 
         if (rows.affectedRows != 1) throw new RepositoryFailureError(`the update-query registry agent was not updated`);
@@ -134,7 +134,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
 
     public async deleteRegistryAgent(id: number) {
         // idempotent delete
-        await this.pool.execute(`DELETE FROM registry_agents WHERE id = ?`, [ id ]);
+        await this.pool.execute(`DELETE FROM registry_agents WHERE raid = ?`, [ id ]);
         return;
     }
 
@@ -145,7 +145,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     }
 
     public async getRegistryPermissionById(id: number): Promise<RegistryPermission | null> {
-        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE id = ?`, [ id ]);
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE rpid = ?`, [ id ]);
         return (rows[0] ?? null) as RegistryPermission;
     }
 
@@ -171,7 +171,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
 
     public async deleteRegistryPermission(id: number): Promise<void> {
         // idempotent delete
-        await this.pool.execute(`DELETE FROM registry_permissions_available WHERE id = ?`, [ id ]);
+        await this.pool.execute(`DELETE FROM registry_permissions_available WHERE rpid = ?`, [ id ]);
         return;
     }
 

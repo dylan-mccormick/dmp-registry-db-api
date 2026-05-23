@@ -10,6 +10,7 @@ import { RegistryAgent } from "../model/RegistryAgent";
 import { CreateRegistryPermissionProps } from "../model/RegistryPermission";
 import { RegistryPermission } from "../model/RegistryPermission";
 import { RegistryActorPermission } from "../model/RegistryActorPermission";
+import { User } from "../model/User";
 
 /**
  * Implementation of the GlobalRegistryRepository.
@@ -46,8 +47,8 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
 
         // create the registry
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
-            `INSERT INTO registries(name, type, storage_location)
-            VALUES (?, ?, ?)`, [ name, type, storage_location ]);
+            `INSERT INTO registries(name, (SELECT tid FROM registry_types WHERE type = ?), storage_location)
+            VALUES (?, ?, ?)`, [ type, name, storage_location ]);
         const registry = await this.getRegistryById(rows.insertId);
 
         if (registry == null) throw new RepositoryFailureError("registry was created without error but cannot be found");
@@ -250,6 +251,23 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
             `DELETE FROM registry_agent_permissions
             WHERE agent_id = ? AND registry_id = ? AND permission_id = ?`, [ agentId, registryId, permission.id ]);
         return;
+    }
+
+    /* JUNCTION TABLE OPERATIONS */
+    public async getUsersWithPermissionOnRegistry(registryId: number, permissionId: number): Promise<User[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`
+            SELECT u.* FROM users AS u
+            INNER JOIN registry_user_permissions AS rup on u.id = rup.user_id
+            WHERE rup.registry_id = ? AND rup.permission_id = ?`, [ registryId, permissionId ]);
+        return rows as User[];
+    }
+
+    public async getAgentsWithPermissionOnRegistry(registryId: number, permissionId: number): Promise<RegistryAgent[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`
+            SELECT ra.* FROM registry_agents AS ra
+            INNER JOIN registry_agent_permissions AS rap on ra.id = rap.agent_id
+            WHERE rap.registry_id = ? AND rap.permission_id = ?`, [ registryId, permissionId ]);
+        return rows as RegistryAgent[];
     }
 
 }

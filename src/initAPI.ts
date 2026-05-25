@@ -25,7 +25,7 @@ const initAPI = (userRepository: UserRepository, globalRegistryRepository: Globa
         app.use(helmet());
         app.use(bodyParser.urlencoded({ extended: false }));
         app.use(bodyParser.json());
-        app.use(limiter);
+        // app.use(limiter);
 
         // api key handler
         app.use(apiKeyHandler);

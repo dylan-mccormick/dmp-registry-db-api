@@ -5,6 +5,8 @@ import { asyncHandler } from "../Utils";
 import { RegistryAgentCreateSchema, RegistryAgentIdQuerySchema, RegistryAgentUpdateSchema } from "./schema/RegistryAgentSchema";
 import { RegistryPermissionCreateSchema, RegistryPermissionIdQuerySchema } from "./schema/RegistryPermissionSchema";
 import { RegistryAgentPermissionIdQuerySchema, UserIdGlobalPermissionQuerySchema, UserIdRegistryPermissionIdQuerySchema, UserIdRegistryPermissionQuerySchema } from "./schema/RegistryActorPermissionSchema";
+import z from "zod";
+import { Registry, RegistryAPIResult, RegistryType } from "../model/Registry";
 
 
 export class GlobalRegistryRepositoryAPI {
@@ -12,6 +14,20 @@ export class GlobalRegistryRepositoryAPI {
 
     constructor(globalRegistryRepository: GlobalRegistryRepository) {
         this.globalRegistryRepository = globalRegistryRepository;
+    }
+
+    private coerceRegistryToAPIFormat(registry: any): Object {
+        if (!RegistryAPIResult.safeParse(registry).success) {
+            throw new Error(`Registry ${registry} does not conform to API format`);
+        }
+
+        return {
+            id: registry.rid,
+            name: registry.name,
+            type: this.globalRegistryRepository.getRegistryTypeById(registry.tid),
+            storageLocation: registry.storage_location,
+            createdAt: registry.created_at
+        }
     }
 
     public registerRoutes(): Router {
@@ -59,10 +75,10 @@ export class GlobalRegistryRepositoryAPI {
                 if (!registry) {
                     return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
                 }
-                return res.status(200).json(registry);
+                return res.status(200).json(this.coerceRegistryToAPIFormat(registry));
             }
             const registry = await this.globalRegistryRepository.getRegistries();
-            res.status(200).json(registry);
+            res.status(200).json(registry.map(r => this.coerceRegistryToAPIFormat(r)));
         }));
 
         router.post("/registry", asyncHandler(async (req: Request, res: Response) => {
@@ -70,14 +86,21 @@ export class GlobalRegistryRepositoryAPI {
             // verify that the registry name is not already in use
             if (await this.globalRegistryRepository.getRegistryByName(name)) return res.status(400).json({ error: "Registry with this name already exists", code: "REGISTRY_ALREADY_EXISTS" });
             const registry = await this.globalRegistryRepository.createRegistry({ name, type, storage_location });
-            res.status(201).json(registry);
+            res.status(201).json(this.coerceRegistryToAPIFormat(registry));
+        }));
+
+        router.get("/registry/by-storage-location", asyncHandler(async (req: Request, res: Response) => {
+            const { storageLocation } = z.object({ storageLocation: z.string() }).parse(req.query);
+            const registry = await this.globalRegistryRepository.getRegistryAtStorageLocation(storageLocation);
+            if (!registry) return res.status(404).json({ error: "Registry not found at this storage location", code: "REGISTRY_NOT_FOUND_AT_STORAGE_LOCATION" });
+            res.status(200).json(this.coerceRegistryToAPIFormat(registry));
         }));
 
         router.get("/registry/:id", asyncHandler(async (req: Request, res: Response) => {
             const { id } = RegistryRepositoryIdQuerySchema.parse(req.params);
             const registry = await this.globalRegistryRepository.getRegistryById(id);
             if (!registry) return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
-            res.status(200).json(registry);
+            res.status(200).json(this.coerceRegistryToAPIFormat(registry));
         }));
 
         router.put("/registry/:id", asyncHandler(async (req: Request, res: Response) => {

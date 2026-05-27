@@ -16,7 +16,8 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "build": "tsc"
+    "build": "tsc",
+    "dev": "nodemon -e js,ts,env --watch 'src/' --exec 'tsc; node dist/index.js'"
   },
   "dependencies": {
     "body-parser": "^2.2.2",
@@ -35,6 +36,7 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^25.6.0",
     "jest": "^30.3.0",
+    "nodemon": "^3.1.14",
     "ts-jest": "^29.4.9",
     "typescript": "^6.0.3"
   }

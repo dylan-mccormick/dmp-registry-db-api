@@ -1,5 +1,5 @@
 import { RegistryActorPermission } from "../model/RegistryActorPermission";
-import { CreateRegistryProps, Registry, UpdateRegistryProps } from "../model/Registry";
+import { CreateRegistryProps, Registry, RegistryType, UpdateRegistryProps } from "../model/Registry";
 import { CreateRegistryAgentProps, RegistryAgent, UpdateRegistryAgentProps } from "../model/RegistryAgent";
 import { CreateRegistryPermissionProps, RegistryPermission } from "../model/RegistryPermission";
 
@@ -9,6 +9,13 @@ import { CreateRegistryPermissionProps, RegistryPermission } from "../model/Regi
  * the individual implementations depending on the type of registry.
  */
 export interface GlobalRegistryRepository {
+
+    /**
+     * Gets the registry type corresponding to a given id. This is used for foreign key constraints, but the API should be designed such that users of the repository do not need to know about this detail
+     * @param tid the id of the registryType
+     */
+    getRegistryTypeById(tid: number): RegistryType;
+
     /**
      * Creates a registry with the given properties, and returns a promise of it
      * - name must be non-blank, unique, at most 255 in length
@@ -32,6 +39,13 @@ export interface GlobalRegistryRepository {
      * @param name the name of the registry
      */
     getRegistryByName(name: string): Promise<Registry | null>
+
+    /**
+     * Gets a registry given by the specified storage location
+     * Useful for preventing collisions
+     * @param storageLocation the storage location to check
+     */
+    getRegistryAtStorageLocation(storageLocation: string): Promise<Registry | null>
 
     /**
      * Updates a registry with the given properties

@@ -41,6 +41,12 @@ export interface GlobalRegistryRepository {
     getRegistryByName(name: string): Promise<Registry | null>
 
     /**
+     * Returns a list of all registries that a user has some permission on
+     * @param userId the user id to get registries of
+     */
+    getRegistriesByUserId(userId: number): Promise<Registry[]>
+
+    /**
      * Gets a registry given by the specified storage location
      * Useful for preventing collisions
      * @param storageLocation the storage location to check

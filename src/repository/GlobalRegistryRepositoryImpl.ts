@@ -72,6 +72,16 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         return (rows[0] ?? null) as Registry;
     }
 
+    public async getRegistriesByUserId(userId: number): Promise<Registry[]> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`
+                SELECT r.*
+                FROM registries r
+                INNER JOIN registry_user_permissions rup ON r.rid = rup.registry_id
+                WHERE rup.user_id = ?;`, [ userId ]
+            );
+        return rows as Registry[];
+    }
+
     public async createRegistry({ name, type, storage_location }: CreateRegistryProps): Promise<Registry> {
         // verify preconditions
         if (!verifyValidString(name)) throw new IllegalArgumentError(`registry name must be non-blank, lte length 255`);

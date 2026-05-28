@@ -4,6 +4,10 @@ export const UserIdQuerySchema = z.object({
     id: z.coerce.number().int().positive()
 });
 
+export const ExplicitOptionalUserIdQuerySchema = z.object({
+    userId: z.coerce.number().int().positive().optional()
+});
+
 export const UserQuerySchema = z.object({
     id: z.coerce.number().int().positive().optional(),
     username: z.string().optional()

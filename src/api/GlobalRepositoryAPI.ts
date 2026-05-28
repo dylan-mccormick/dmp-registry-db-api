@@ -7,6 +7,7 @@ import { RegistryPermissionCreateSchema, RegistryPermissionIdQuerySchema } from 
 import { RegistryAgentPermissionIdQuerySchema, UserIdGlobalPermissionQuerySchema, UserIdRegistryPermissionIdQuerySchema, UserIdRegistryPermissionQuerySchema } from "./schema/RegistryActorPermissionSchema";
 import z from "zod";
 import { Registry, RegistryAPIResult, RegistryType } from "../model/Registry";
+import { ExplicitOptionalUserIdQuerySchema, UserIdQuerySchema } from "./schema/UserRepositorySchema";
 
 
 export class GlobalRegistryRepositoryAPI {
@@ -70,12 +71,18 @@ export class GlobalRegistryRepositoryAPI {
 
         router.get("/registry", asyncHandler(async (req: Request, res: Response) => {
             const { name } = RegistryRepositoryQuerySchema.parse(req.query);
+            const { userId } = ExplicitOptionalUserIdQuerySchema.parse(req.query);
             if (name) {
                 const registry = await this.globalRegistryRepository.getRegistryByName(name);
                 if (!registry) {
                     return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
                 }
                 return res.status(200).json(this.coerceRegistryToAPIFormat(registry));
+            }
+            if (userId) {
+                const registries = await this.globalRegistryRepository.getRegistriesByUserId(userId);
+                res.status(200).json(registries.map(r => this.coerceRegistryToAPIFormat(r)));
+                return;
             }
             const registry = await this.globalRegistryRepository.getRegistries();
             res.status(200).json(registry.map(r => this.coerceRegistryToAPIFormat(r)));
@@ -113,6 +120,7 @@ export class GlobalRegistryRepositoryAPI {
             if (name && await this.globalRegistryRepository.getRegistryByName(name) && (await this.globalRegistryRepository.getRegistryByName(name))!.id !== id) {
                 return res.status(400).json({ error: "Registry with this name already exists", code: "REGISTRY_ALREADY_EXISTS" });
             }
+            console.log("updating " + name);
             await this.globalRegistryRepository.updateRegistry(id, { name });
             res.status(200).json({ message: "Registry updated successfully" });
         }));

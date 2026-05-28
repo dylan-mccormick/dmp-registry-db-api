@@ -48,7 +48,6 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     }
 
     private coerceDBRegistryPermission(dbResponse: any): RegistryPermission {
-        console.log(dbResponse);
         if (!RegistryPermissionAPIResult.safeParse(dbResponse).success) {
             throw new IllegalArgumentError("Invalid object passed to coerce into Registry Permission.");
         }

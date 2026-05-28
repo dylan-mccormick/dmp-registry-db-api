@@ -4,6 +4,10 @@ export const RegistryPermissionIdQuerySchema = z.object({
     permissionId: z.coerce.number().int().positive()
 });
 
+export const OptionalRegistryPermissionIdQuerySchema = z.object({
+    permissionId: z.coerce.number().int().positive().optional()
+});
+
 export const RegistryPermissionCreateSchema = z.object({
     name: z.string().min(1).max(255)
 });

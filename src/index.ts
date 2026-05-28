@@ -17,7 +17,7 @@ initDB().then(async pool => {
     console.log("Connected to DB pool.");
 
     const userRepository: UserRepository = new UserRepositoryImpl(pool);
-    const globalRegistryRepository: GlobalRegistryRepository = new GlobalRegistryRepositoryImpl(pool);
+    const globalRegistryRepository: GlobalRegistryRepository = new GlobalRegistryRepositoryImpl(pool, userRepository);
     console.log("Initialized repositories.");
 
     initAPI(userRepository, globalRegistryRepository).then(() => console.log("Initialized API.")).catch(err => {

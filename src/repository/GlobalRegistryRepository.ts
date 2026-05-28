@@ -42,10 +42,11 @@ export interface GlobalRegistryRepository {
     getRegistryByName(name: string): Promise<Registry | null>
 
     /**
-     * Returns a list of all registries that a user has some permission on
+     * Returns a list of all registries that a user has the specified permission on
      * @param userId the user id to get registries of
+     * @param permissionId the permission id to get
      */
-    getRegistriesByUserId(userId: number): Promise<Registry[]>
+    getRegistriesByUserIdPermissionId(userId: number, permissionId: number): Promise<Registry[]>
 
     /**
      * Gets a registry given by the specified storage location

@@ -11,6 +11,7 @@ import { CreateRegistryPermissionProps, RegistryPermissionAPIResult } from "../m
 import { RegistryPermission } from "../model/RegistryPermission";
 import { RegistryActorPermission } from "../model/RegistryActorPermission";
 import { User } from "../model/User";
+import { UserRepository } from "./UserRepository";
 
 /**
  * Implementation of the GlobalRegistryRepository.
@@ -20,8 +21,11 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     private pool: mysql.Pool;
     private registryTypeCache: Map<RegistryType, number> = new Map();
 
-    constructor(pool: mysql.Pool) {
+    private userRepository: UserRepository;
+
+    constructor(pool: mysql.Pool, userRepository: UserRepository) {
         this.pool = pool;
+        this.userRepository = userRepository;
         this.initializeRegistryTypes().catch(err => {
             console.error("failed to initialize registry type cache", err);
             throw err;
@@ -44,7 +48,8 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
     }
 
     private coerceDBRegistryPermission(dbResponse: any): RegistryPermission {
-        if (!RegistryPermissionAPIResult.safeParse(dbResponse)) {
+        console.log(dbResponse);
+        if (!RegistryPermissionAPIResult.safeParse(dbResponse).success) {
             throw new IllegalArgumentError("Invalid object passed to coerce into Registry Permission.");
         }
 
@@ -84,25 +89,26 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         return (rows[0] ?? null) as Registry;
     }
 
-    public async getRegistriesByUserId(userId: number): Promise<Registry[]> {
+    public async getRegistriesByUserIdPermissionId(userId: number, permissionId: number): Promise<Registry[]> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`
                 SELECT r.*
                 FROM registries r
                 INNER JOIN registry_user_permissions rup ON r.rid = rup.registry_id
-                WHERE rup.user_id = ?;`, [ userId ]
+                WHERE rup.user_id = ? AND rup.permission_id = ?;`, [ userId, permissionId ]
             );
         return rows as Registry[];
     }
 
-    public async createRegistry({ name, type, storage_location }: CreateRegistryProps): Promise<Registry> {
+    public async createRegistry({ name, type, storage_location, created_by_user_id }: CreateRegistryProps): Promise<Registry> {
         // verify preconditions
         if (!verifyValidString(name)) throw new IllegalArgumentError(`registry name must be non-blank, lte length 255`);
         if (await this.getRegistryByName(name) != null) throw new IllegalStateError(`registry with the given name ${name} already exists`);
+        if (await this.userRepository.getUserById(created_by_user_id) == null) throw new IllegalArgumentError(`cannot create a registry with a creator user id that does not exist`);
 
         // create the registry
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
-            `INSERT INTO registries(name, tid, storage_location)
-            VALUES (?, ?, ?)`, [ name, await this.registryTypeCache.get(type)!, storage_location ]);
+            `INSERT INTO registries(name, tid, storage_location, created_by_user_id)
+            VALUES (?, ?, ?, ?)`, [ name, await this.registryTypeCache.get(type)!, storage_location, created_by_user_id ]);
         const registry = await this.getRegistryById(rows.insertId);
 
         if (registry == null) throw new RepositoryFailureError("registry was created without error but cannot be found");
@@ -156,11 +162,12 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         if (!verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
         if (!verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
         if (await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
+        if (await this.userRepository.getUserById(created_by_user_id) == null) throw new IllegalArgumentError(`cannot create a registry agent with a creator user id that does not exist`);
 
         // create the registry agent
         const [ rows ] = await this.pool.execute<ResultSetHeader>(
             `INSERT INTO registry_agents(registry_id, name, key_hash, created_by_user_id)
-            VALUES (?, ?, ?, ?)`, [ registry_id, name, key_hash, created_by_user_id ?? null ]);
+            VALUES (?, ?, ?, ?)`, [ registry_id, name, key_hash, created_by_user_id ]);
         const registryAgent = await this.getRegistryAgentById(rows.insertId);
 
         if (registryAgent == null) throw new RepositoryFailureError(`registry agent was created without error but was not found`);
@@ -200,12 +207,12 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
 
     public async getRegistryPermissionById(id: number): Promise<RegistryPermission | null> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE rpid = ?`, [ id ]);
-        return this.coerceDBRegistryPermission(rows[0] ?? null);
+        return rows[0] ? this.coerceDBRegistryPermission(rows[0]) : null;
     }
 
     public async getRegistryPermissionByName(name: string): Promise<RegistryPermission | null> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE name = ?`, [ name ]);
-        return this.coerceDBRegistryPermission(rows[0] ?? null);
+        return rows[0] ? this.coerceDBRegistryPermission(rows[0]) : null;
     }
 
     public async createRegistryPermission({ name }: CreateRegistryPermissionProps) {
@@ -326,7 +333,6 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
                 FROM users AS u
                 INNER JOIN registry_user_permissions AS rup ON rup.user_id = u.id
                 WHERE rup.registry_id = ? AND rup.permission_id = ?;`, [ registryId, permissionId ])
-
         return rows as User[];
     }
 

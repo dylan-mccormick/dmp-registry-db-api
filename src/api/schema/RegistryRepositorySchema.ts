@@ -11,7 +11,8 @@ export const RegistryRepositoryQuerySchema = z.object({
 export const RegistryRepositoryCreateSchema = z.object({
     name: z.string().min(1).max(255),
     type: z.enum(['files', 'mongodb']),
-    storage_location: z.string().min(1).max(255)
+    storage_location: z.string().min(1).max(255),
+    created_by_user_id: z.coerce.number().int().positive()
 });
 
 export const RegistryRepositoryUpdateSchema = z.object({

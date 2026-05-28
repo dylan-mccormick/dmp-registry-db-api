@@ -27,5 +27,6 @@ export interface UpdateRegistryProps {
 export interface CreateRegistryProps {
     name: string,
     type: RegistryType,
-    storage_location: string
+    storage_location: string,
+    created_by_user_id: number
 }

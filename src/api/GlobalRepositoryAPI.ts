@@ -3,12 +3,13 @@ import { GlobalRegistryRepository } from "../repository/GlobalRegistryRepository
 import { RegistryRepositoryCreateSchema, RegistryRepositoryIdQuerySchema, RegistryRepositoryQuerySchema, RegistryRepositoryUpdateSchema } from "./schema/RegistryRepositorySchema";
 import { asyncHandler } from "../Utils";
 import { RegistryAgentCreateSchema, RegistryAgentIdQuerySchema, RegistryAgentUpdateSchema } from "./schema/RegistryAgentSchema";
-import { RegistryPermissionCreateSchema, RegistryPermissionIdQuerySchema } from "./schema/RegistryPermissionSchema";
+import { OptionalRegistryPermissionIdQuerySchema, RegistryPermissionCreateSchema, RegistryPermissionIdQuerySchema } from "./schema/RegistryPermissionSchema";
 import { RegistryAgentPermissionIdQuerySchema, UserIdGlobalPermissionQuerySchema, UserIdRegistryPermissionIdQuerySchema, UserIdRegistryPermissionQuerySchema } from "./schema/RegistryActorPermissionSchema";
 import z from "zod";
 import { Registry, RegistryAPIResult, RegistryType } from "../model/Registry";
 import { ExplicitOptionalUserIdQuerySchema, UserIdQuerySchema } from "./schema/UserRepositorySchema";
 import { RegistryPermissionAPIResult } from "../model/RegistryPermission";
+import { UserPermissionIdQuerySchema } from "./schema/UserPermissionSchema";
 
 
 export class GlobalRegistryRepositoryAPI {
@@ -73,6 +74,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/registry", asyncHandler(async (req: Request, res: Response) => {
             const { name } = RegistryRepositoryQuerySchema.parse(req.query);
             const { userId } = ExplicitOptionalUserIdQuerySchema.parse(req.query);
+            const { permissionId } = OptionalRegistryPermissionIdQuerySchema.parse(req.query);
             if (name) {
                 const registry = await this.globalRegistryRepository.getRegistryByName(name);
                 if (!registry) {
@@ -80,8 +82,8 @@ export class GlobalRegistryRepositoryAPI {
                 }
                 return res.status(200).json(this.coerceRegistryToAPIFormat(registry));
             }
-            if (userId) {
-                const registries = await this.globalRegistryRepository.getRegistriesByUserId(userId);
+            if (userId && permissionId) {
+                const registries = await this.globalRegistryRepository.getRegistriesByUserIdPermissionId(userId, permissionId);
                 res.status(200).json(registries.map(r => this.coerceRegistryToAPIFormat(r)));
                 return;
             }
@@ -90,10 +92,10 @@ export class GlobalRegistryRepositoryAPI {
         }));
 
         router.post("/registry", asyncHandler(async (req: Request, res: Response) => {
-            const { name, type, storage_location } = RegistryRepositoryCreateSchema.parse(req.body);
+            const { name, type, storage_location, created_by_user_id } = RegistryRepositoryCreateSchema.parse(req.body);
             // verify that the registry name is not already in use
             if (await this.globalRegistryRepository.getRegistryByName(name)) return res.status(400).json({ error: "Registry with this name already exists", code: "REGISTRY_ALREADY_EXISTS" });
-            const registry = await this.globalRegistryRepository.createRegistry({ name, type, storage_location });
+            const registry = await this.globalRegistryRepository.createRegistry({ name, type, storage_location, created_by_user_id });
             res.status(201).json(this.coerceRegistryToAPIFormat(registry));
         }));
 

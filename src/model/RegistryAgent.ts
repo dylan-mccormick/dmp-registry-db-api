@@ -11,7 +11,7 @@ export interface CreateRegistryAgentProps {
     registry_id: number,
     name: string,
     key_hash: string,
-    created_by_user_id?: number
+    created_by_user_id: number
 }
 
 export interface UpdateRegistryAgentProps {

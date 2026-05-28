@@ -2,6 +2,7 @@ import { RegistryActorPermission } from "../model/RegistryActorPermission";
 import { CreateRegistryProps, Registry, RegistryType, UpdateRegistryProps } from "../model/Registry";
 import { CreateRegistryAgentProps, RegistryAgent, UpdateRegistryAgentProps } from "../model/RegistryAgent";
 import { CreateRegistryPermissionProps, RegistryPermission } from "../model/RegistryPermission";
+import { User } from "../model/User";
 
 /**
  * Basic CRUD interface that can be used for all registries. This manages each registry in the context
@@ -187,6 +188,20 @@ export interface GlobalRegistryRepository {
      * @param permission the registry permission to revoke
      */
     revokeRegistryPermissionFromAgent(agentId: number, registryId: number, permission: RegistryPermission): Promise<void>;
+
+    /**
+     * Gets a list of users with the permission provided by the permission ID, on the registry provided by the registry ID
+     * @param registryId the id of the registry to check
+     * @param permissionId the id of the permission to check
+     */
+    getUsersWithPermissionOnRegistry(registryId: number, permissionId: number): Promise<User[]>;
+
+    /**
+     * Gets a list of agents with the permissions provided by the permission ID, on the registry provided by the registry ID
+     * @param registryId the id of the registry to check
+     * @param permissionId the id of the permission to check
+     */
+    getAgentsWithPermissionOnRegistry(registryId: number, permissionId: number): Promise<RegistryAgent[]>;
 
     /**
      * Deletes a registry permission with the given id. If no registry permission exists, no effect will occur

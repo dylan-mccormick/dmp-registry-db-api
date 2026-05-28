@@ -8,6 +8,7 @@ import { RegistryAgentPermissionIdQuerySchema, UserIdGlobalPermissionQuerySchema
 import z from "zod";
 import { Registry, RegistryAPIResult, RegistryType } from "../model/Registry";
 import { ExplicitOptionalUserIdQuerySchema, UserIdQuerySchema } from "./schema/UserRepositorySchema";
+import { RegistryPermissionAPIResult } from "../model/RegistryPermission";
 
 
 export class GlobalRegistryRepositoryAPI {
@@ -120,7 +121,6 @@ export class GlobalRegistryRepositoryAPI {
             if (name && await this.globalRegistryRepository.getRegistryByName(name) && (await this.globalRegistryRepository.getRegistryByName(name))!.id !== id) {
                 return res.status(400).json({ error: "Registry with this name already exists", code: "REGISTRY_ALREADY_EXISTS" });
             }
-            console.log("updating " + name);
             await this.globalRegistryRepository.updateRegistry(id, { name });
             res.status(200).json({ message: "Registry updated successfully" });
         }));
@@ -181,6 +181,20 @@ export class GlobalRegistryRepositoryAPI {
             await this.globalRegistryRepository.deleteRegistryAgent(agentId); // idempotent delete, so no need to verify existence beforehand
             res.status(200).json({ message: "Registry agent deleted successfully" });
         }));
+
+        // get all users with a permission
+        router.get("/registry/:id/permissions/:permissionId/users", asyncHandler(async (req: Request, res: Response) => {
+            const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
+            const { permissionId } = RegistryPermissionIdQuerySchema.parse(req.params);
+            res.status(200).json(await this.globalRegistryRepository.getUsersWithPermissionOnRegistry(registryId, permissionId));
+        }));
+
+        // get all agents with a permission
+        router.get("/registry/:id/permissions/:permissionId/agents", asyncHandler(async (req: Request, res: Response) => {
+            const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
+            const { permissionId } = RegistryPermissionIdQuerySchema.parse(req.params);
+            res.status(200).json(await this.globalRegistryRepository.getAgentsWithPermissionOnRegistry(registryId, permissionId));
+        }))
 
         router.get("/users/:userId/registry/permissions", asyncHandler(async (req: Request, res: Response) => {
             const { userId } = UserIdGlobalPermissionQuerySchema.parse(req.params);

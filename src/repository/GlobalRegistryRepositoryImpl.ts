@@ -7,9 +7,10 @@ import { IllegalStateError } from "../error/IllegalStateError";
 import { RepositoryFailureError } from "../error/RepositoryFailureError";
 import { CreateRegistryAgentProps, UpdateRegistryAgentProps } from "../model/RegistryAgent";
 import { RegistryAgent } from "../model/RegistryAgent";
-import { CreateRegistryPermissionProps } from "../model/RegistryPermission";
+import { CreateRegistryPermissionProps, RegistryPermissionAPIResult } from "../model/RegistryPermission";
 import { RegistryPermission } from "../model/RegistryPermission";
 import { RegistryActorPermission } from "../model/RegistryActorPermission";
+import { User } from "../model/User";
 
 /**
  * Implementation of the GlobalRegistryRepository.
@@ -39,6 +40,17 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
                 const [ { insertId } ] = await this.pool.execute<ResultSetHeader>(`INSERT INTO registry_type(type) VALUES (?)`, [ type.toString() ]);
                 this.registryTypeCache.set(type, insertId);
             }
+        }
+    }
+
+    private coerceDBRegistryPermission(dbResponse: any): RegistryPermission {
+        if (!RegistryPermissionAPIResult.safeParse(dbResponse)) {
+            throw new IllegalArgumentError("Invalid object passed to coerce into Registry Permission.");
+        }
+
+        return {
+            id: dbResponse.rpid,
+            name: dbResponse.name
         }
     }
 
@@ -188,12 +200,12 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
 
     public async getRegistryPermissionById(id: number): Promise<RegistryPermission | null> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE rpid = ?`, [ id ]);
-        return (rows[0] ?? null) as RegistryPermission;
+        return this.coerceDBRegistryPermission(rows[0] ?? null);
     }
 
     public async getRegistryPermissionByName(name: string): Promise<RegistryPermission | null> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_permissions_available WHERE name = ?`, [ name ]);
-        return (rows[0] ?? null) as RegistryPermission;
+        return this.coerceDBRegistryPermission(rows[0] ?? null);
     }
 
     public async createRegistryPermission({ name }: CreateRegistryPermissionProps) {
@@ -293,6 +305,29 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
             `DELETE FROM registry_agent_permissions
             WHERE agent_id = ? AND registry_id = ? AND permission_id = ?`, [ agentId, registryId, permission.id ]);
         return;
+    }
+
+    public async getAgentsWithPermissionOnRegistry(registryId: number, permissionId: number): Promise<RegistryAgent[]> {
+        // run agent query
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(
+            `SELECT ra.raid AS id, ra.registry_id, ra.name, ra.key_hash, ra.created_at, ra.created_by_user_id
+                FROM registry_agents AS ra
+                INNER JOIN registry_agent_permissions AS rap ON rap.agent_id = ra.raid
+                WHERE rap.registry_id = ? AND rap.permission_id = ?;`, [ registryId, permissionId ]
+        )
+
+        return rows as RegistryAgent[];
+    }
+
+    public async getUsersWithPermissionOnRegistry(registryId: number, permissionId: number): Promise<User[]> {
+        // run user query
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(
+            `SELECT u.*
+                FROM users AS u
+                INNER JOIN registry_user_permissions AS rup ON rup.user_id = u.id
+                WHERE rup.registry_id = ? AND rup.permission_id = ?;`, [ registryId, permissionId ])
+
+        return rows as User[];
     }
 
 }

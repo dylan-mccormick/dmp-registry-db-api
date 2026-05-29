@@ -29,7 +29,8 @@ export class GlobalRegistryRepositoryAPI {
             name: registry.name,
             type: this.globalRegistryRepository.getRegistryTypeById(registry.tid),
             storageLocation: registry.storage_location,
-            createdAt: registry.created_at
+            createdAt: registry.created_at,
+            createdByUserId: registry.created_by_user_id
         }
     }
 

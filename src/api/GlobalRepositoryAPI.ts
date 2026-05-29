@@ -208,7 +208,7 @@ export class GlobalRegistryRepositoryAPI {
         router.get("/users/:userId/registry/:registryId/permissions", asyncHandler(async (req: Request, res: Response) => {
             const { userId, registryId } = UserIdRegistryPermissionQuerySchema.parse(req.params);
             const permissions = await this.globalRegistryRepository.getRegistryPermissionsOnUserRegistry(userId, registryId);
-             res.status(200).json(permissions);
+            res.status(200).json(permissions);
         }));
 
         router.post("/users/:userId/registry/:registryId/permissions/:permissionId", asyncHandler(async (req: Request, res: Response) => {

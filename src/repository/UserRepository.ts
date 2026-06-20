@@ -31,6 +31,12 @@ export interface UserRepository {
     getUserByUsername(username: string): Promise<User | null>;
 
     /**
+     * Searches for users whose username contains the given query string. The search is case-insensitive and matches any part of the username
+     * @param usernameQuery the query to search for in usernames
+     */
+    searchUsersByUsername(usernameQuery: string): Promise<User[]>;
+
+    /**
      * Updates a user's profile with the given properties. Properties that are not set will not change
      * - username/email/password must be non-blank, at most 255 in length
      * - username must not be in use already

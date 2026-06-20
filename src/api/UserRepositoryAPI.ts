@@ -1,6 +1,6 @@
 import { Application, Request, Response, Router } from "express";
 import { UserRepository } from "../repository/UserRepository";
-import { UserCreateSchema, UserIdQuerySchema, UserQuerySchema, UserUpdateSchema } from "./schema/UserRepositorySchema";
+import { UserCreateSchema, UserIdQuerySchema, UserQuerySchema, UserSearchQuerySchema, UserUpdateSchema } from "./schema/UserRepositorySchema";
 import { asyncHandler } from "../Utils";
 import { UserPermissionCreateSchema, UserPermissionIdQuerySchema, UserPermissionQuerySchema } from "./schema/UserPermissionSchema";
 
@@ -18,6 +18,13 @@ export class UserRepositoryAPI {
 
         router.get("/users", asyncHandler(async (req: Request, res: Response) => {
             const { username } = UserQuerySchema.parse(req.query);
+            const { search } = UserSearchQuerySchema.parse(req.query);
+
+            if (search) {
+                const users = await this.userRepository.searchUsersByUsername(search);
+                return res.status(200).json(users);
+            }
+
             if (username) {
                 const user = await this.userRepository.getUserByUsername(username);
 

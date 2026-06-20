@@ -40,6 +40,12 @@ export class UserRepositoryImpl implements UserRepository {
         return (rows[0] ?? null) as User;
     }
 
+    public searchUsersByUsername = async (usernameQuery: string): Promise<User[]> => {
+        const query = `%${usernameQuery}%`;
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>("SELECT * FROM users WHERE username LIKE ?", [ query ]);
+        return rows as User[];
+    }
+
     public createUser = async ({ username, email, password_hash }: CreateUserProps): Promise<User> => {
         // verify preconditions
         if (!verifyValidString(username)) throw new IllegalArgumentError("username must be non-blank, lte length 255");

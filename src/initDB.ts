@@ -12,7 +12,8 @@ const initDB = (): Promise<mysql.Pool> => {
             user: process.env.MYSQL_ROOT_USER,
 	        port: parseInt(process.env.MYSQL_PORT),
             database: process.env.MYSQL_DATABASE,
-            password: process.env.MYSQL_ROOT_PASSWORD
+            password: process.env.MYSQL_ROOT_PASSWORD,
+            timezone: "Z"
         });
 
         // test connection

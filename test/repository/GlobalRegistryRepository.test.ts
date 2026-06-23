@@ -3,6 +3,7 @@ import { GlobalRegistryRepositoryImpl } from '../../src/repository/GlobalRegistr
 import { GlobalRegistryRepository } from '../../src/repository/GlobalRegistryRepository';
 import { IllegalArgumentError } from '../../src/error/IllegalArgumentError';
 import { IllegalStateError } from '../../src/error/IllegalStateError';
+import { RegistryType } from '../../src/model/Registry';
 
 let pool: mysql.Pool;
 let repo: GlobalRegistryRepository;
@@ -20,7 +21,7 @@ const clearTables = async () => {
 
 const longString = (length: number) => 'a'.repeat(length);
 
-const createRegistry = async (name: string, type: 'files' | 'mongodb' = 'files', storage_location = 'storage://bucket') => {
+const createRegistry = async (name: string, type: RegistryType, storage_location = 'storage://bucket') => {
 	return repo.createRegistry({ name, type, storage_location });
 };
 

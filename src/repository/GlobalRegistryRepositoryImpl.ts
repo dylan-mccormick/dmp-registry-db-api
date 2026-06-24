@@ -151,6 +151,11 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         return (rows[0] ?? null) as RegistryAgent;
     }
 
+    public async getRegistryAgentByHash(hash: string): Promise<RegistryAgent | null> {
+        const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE key_hash = ?`, [ hash ]);
+        return (rows[0] ?? null) as RegistryAgent;
+    }
+
     public async getRegistryAgentByName(name: string): Promise<RegistryAgent | null> {
         const [ rows ] = await this.pool.execute<RowDataPacket[]>(`SELECT * FROM registry_agents WHERE name = ?`, [ name ]);
         return (rows[0] ?? null) as RegistryAgent;
@@ -179,7 +184,7 @@ export class GlobalRegistryRepositoryImpl implements GlobalRegistryRepository {
         // verify preconditions
         if (name !== undefined && !verifyValidString(name)) throw new IllegalArgumentError(`registry agent name must be non-blank, lte length 255`);
         if (key_hash !== undefined && !verifyValidString(key_hash)) throw new IllegalArgumentError(`registry agent key hash must be non-blank, lte length 255`);
-        if (name !== undefined && name != agent.name && await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
+        if (name !== undefined && name.toLowerCase() != agent.name.toLowerCase() && await this.getRegistryAgentByName(name) != null) throw new IllegalStateError(`registry agent with the name ${name} already exists`);
 
         // update the registry agent
         const [ rows ] = await this.pool.execute<ResultSetHeader>(

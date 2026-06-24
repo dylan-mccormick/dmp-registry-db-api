@@ -83,10 +83,17 @@ export interface GlobalRegistryRepository {
     getRegistryAgentById(id: number): Promise<RegistryAgent | null>;
 
     /**
+     * Gets a registry agent given the specified registry agent hash
+     * @param hash the hash of the registry agent to get
+     */
+    getRegistryAgentByHash(hash: string): Promise<RegistryAgent | null>;
+
+    /**
      * Gets a registry agent given the specified registry agent id
+     * @param registryId the id of the registry
      * @param id the id of the registry agent to get
      */
-    getRegistryAgentByName(name: string): Promise<RegistryAgent | null>;
+    getRegistryAgentByName(registryId: number, name: string): Promise<RegistryAgent | null>;
 
     /**
      * Gets a list of all registry agents that belong to a specific registry

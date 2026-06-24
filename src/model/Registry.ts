@@ -1,6 +1,6 @@
 import z from "zod";
 
-export const registryTypesArray = [ 'files', 'mongodb' ] as const;
+export const registryTypesArray = [ 'files', 'mongodb', 'sqlite', 'keyvalue' ] as const;
 
 export type RegistryType = typeof registryTypesArray[number];
 

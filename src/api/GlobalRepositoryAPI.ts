@@ -1,15 +1,14 @@
-import { Application, Request, Response, Router } from "express";
+import { Request, Response, Router } from "express";
 import { GlobalRegistryRepository } from "../repository/GlobalRegistryRepository";
 import { RegistryRepositoryCreateSchema, RegistryRepositoryIdQuerySchema, RegistryRepositoryQuerySchema, RegistryRepositoryUpdateSchema } from "./schema/RegistryRepositorySchema";
 import { asyncHandler } from "../Utils";
-import { RegistryAgentCreateSchema, RegistryAgentIdQuerySchema, RegistryAgentUpdateSchema } from "./schema/RegistryAgentSchema";
+import { AgentHashQuerySchema, AgentIdQuerySchema, RegistryAgentCreateSchema, RegistryAgentIdQuerySchema, RegistryAgentUpdateSchema } from "./schema/RegistryAgentSchema";
 import { OptionalRegistryPermissionIdQuerySchema, RegistryPermissionCreateSchema, RegistryPermissionIdQuerySchema } from "./schema/RegistryPermissionSchema";
 import { RegistryAgentPermissionIdQuerySchema, UserIdGlobalPermissionQuerySchema, UserIdRegistryPermissionIdQuerySchema, UserIdRegistryPermissionQuerySchema } from "./schema/RegistryActorPermissionSchema";
 import z from "zod";
-import { Registry, RegistryAPIResult, RegistryType } from "../model/Registry";
-import { ExplicitOptionalUserIdQuerySchema, UserIdQuerySchema } from "./schema/UserRepositorySchema";
-import { RegistryPermissionAPIResult } from "../model/RegistryPermission";
-import { UserPermissionIdQuerySchema } from "./schema/UserPermissionSchema";
+import { RegistryAPIResult } from "../model/Registry";
+import { ExplicitOptionalUserIdQuerySchema } from "./schema/UserRepositorySchema";
+import { RegistryAgent } from "../model/RegistryAgent";
 
 
 export class GlobalRegistryRepositoryAPI {
@@ -31,6 +30,17 @@ export class GlobalRegistryRepositoryAPI {
             storageLocation: registry.storage_location,
             createdAt: registry.created_at,
             createdByUserId: registry.created_by_user_id
+        }
+    }
+
+    private coerceRegistryAgentToAPIFormat(agent: any): RegistryAgent {
+        return {
+            id: agent.raid,
+            registry_id: agent.registry_id,
+            name: agent.name,
+            key_hash: agent.key_hash,
+            created_at: agent.created_at,
+            created_by_user_id: agent.created_by_user_id
         }
     }
 
@@ -138,7 +148,7 @@ export class GlobalRegistryRepositoryAPI {
             const { name } = RegistryRepositoryQuerySchema.parse(req.query);
             const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
             if (name) {
-                const agent = await this.globalRegistryRepository.getRegistryAgentByName(name);
+                const agent = await this.globalRegistryRepository.getRegistryAgentByName(registryId, name);
                 if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
                 return res.status(200).json(agent);
             }
@@ -146,8 +156,15 @@ export class GlobalRegistryRepositoryAPI {
             res.status(200).json(agents);
         }));
 
-        router.get("/registry/:registryId/agents/:agentId", asyncHandler(async (req: Request, res: Response) => {
-            const { agentId } = RegistryAgentIdQuerySchema.parse(req.params);
+        router.get("/agents/hash/:hash", asyncHandler(async (req: Request, res: Response) => {
+            const { hash } = AgentHashQuerySchema.parse(req.params);
+            const agent = await this.globalRegistryRepository.getRegistryAgentByHash(hash);
+            if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
+            res.status(200).json(agent);
+        }));
+
+        router.get("/agents/:agentId", asyncHandler(async (req: Request, res: Response) => {
+            const { agentId } = AgentIdQuerySchema.parse(req.params);
             const agent = await this.globalRegistryRepository.getRegistryAgentById(agentId);
             if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
             res.status(200).json(agent);
@@ -159,7 +176,7 @@ export class GlobalRegistryRepositoryAPI {
             // verify that the registry exists
             if (!(await this.globalRegistryRepository.getRegistryById(registryId))) return res.status(404).json({ error: "Registry not found", code: "REGISTRY_NOT_FOUND" });
             // verify that the registry agent name is not already in use
-            if (await this.globalRegistryRepository.getRegistryAgentByName(name)) return res.status(400).json({ error: "Registry agent with this name already exists", code: "REGISTRY_AGENT_ALREADY_EXISTS" });
+            if (await this.globalRegistryRepository.getRegistryAgentByName(registryId, name)) return res.status(400).json({ error: "Registry agent with this name already exists", code: "REGISTRY_AGENT_ALREADY_EXISTS" });
             // verify that the user creating the registry agent exists
             if (!(await this.globalRegistryRepository.getRegistryPermissionsOnUser(created_by_user_id))) return res.status(404).json({ error: "Creating user not found", code: "CREATING_USER_NOT_FOUND" });
             const agent = await this.globalRegistryRepository.createRegistryAgent({ registry_id: registryId, name, key_hash, created_by_user_id });
@@ -167,12 +184,13 @@ export class GlobalRegistryRepositoryAPI {
         }));
 
         router.put("/registry/:registryId/agents/:agentId", asyncHandler(async (req: Request, res: Response) => {
+            const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
             const { agentId } = RegistryAgentIdQuerySchema.parse(req.params);
             const { name, key_hash } = RegistryAgentUpdateSchema.parse(req.body);
             const agent = await this.globalRegistryRepository.getRegistryAgentById(agentId);
             if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
             // verify that the new name is not already in use by another registry agent
-            if (name && await this.globalRegistryRepository.getRegistryAgentByName(name) && (await this.globalRegistryRepository.getRegistryAgentByName(name))!.id !== agentId) {
+            if (name && await this.globalRegistryRepository.getRegistryAgentByName(registryId, name) && this.coerceRegistryAgentToAPIFormat(await this.globalRegistryRepository.getRegistryAgentByName(registryId, name))!.id !== agentId) {
                 return res.status(400).json({ error: "Registry agent with this name already exists", code: "REGISTRY_AGENT_ALREADY_EXISTS" });
             }
             await this.globalRegistryRepository.updateRegistryAgent(agentId, { name, key_hash });

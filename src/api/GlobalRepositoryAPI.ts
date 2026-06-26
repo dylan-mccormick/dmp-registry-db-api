@@ -184,8 +184,7 @@ export class GlobalRegistryRepositoryAPI {
         }));
 
         router.put("/registry/:registryId/agents/:agentId", asyncHandler(async (req: Request, res: Response) => {
-            const { id: registryId } = RegistryRepositoryIdQuerySchema.parse(req.params);
-            const { agentId } = RegistryAgentIdQuerySchema.parse(req.params);
+            const { registryId, agentId } = RegistryAgentIdQuerySchema.parse(req.params);
             const { name, key_hash } = RegistryAgentUpdateSchema.parse(req.body);
             const agent = await this.globalRegistryRepository.getRegistryAgentById(agentId);
             if (!agent) return res.status(404).json({ error: "Registry agent not found", code: "REGISTRY_AGENT_NOT_FOUND" });
